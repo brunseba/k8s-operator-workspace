@@ -1,0 +1,162 @@
+site_name: PetStore Kubernetes CRDs
+site_description: Custom Resource Definitions for managing pet store resources in Kubernetes
+site_author: PetStore CRDs Project
+site_url: https://username.github.io/kubernetes-objects
+
+# Repository
+repo_name: kubernetes-objects
+repo_url: https://github.com/username/kubernetes-objects
+
+# Copyright
+copyright: Copyright &copy; 2025 PetStore CRDs Project
+
+# Configuration
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - toc.follow
+    - content.code.copy
+    - content.code.annotate
+  palette:
+    - scheme: default
+      primary: blue
+      accent: light blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue
+      accent: light blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+    admonition:
+      note: octicons/tag-16
+      abstract: octicons/checklist-16
+      info: octicons/info-16
+      tip: octicons/squirrel-16
+      success: octicons/check-16
+      question: octicons/question-16
+      warning: octicons/alert-16
+      failure: octicons/x-circle-16
+      danger: octicons/zap-16
+      bug: octicons/bug-16
+      example: octicons/beaker-16
+      quote: octicons/quote-16
+
+# Extensions
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+      emoji_index: !!python/name:materialx.emoji.twemoji
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: username
+      repo: kubernetes-objects
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Plugins
+plugins:
+  - search:
+      lang: en
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: datetime
+  - minify:
+      minify_html: true
+  - pdf-export:
+      verbose: true
+      media_type: print
+      combined: true
+      combined_output_path: petstore-crds-documentation.pdf
+
+# Customization
+extra:
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/username/kubernetes-objects
+    - icon: fontawesome/solid/paper-plane
+      link: mailto:contact@example.com
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+# Page tree
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Quick Start: getting-started/quick-start.md
+    - Installation: getting-started/installation.md
+    - Prerequisites: getting-started/prerequisites.md
+  - Resources:
+    - Pet CRD: resources/pet-crd.md
+    - PetStore CRD: resources/petstore-crd.md
+    - Examples: resources/examples.md
+  - Usage:
+    - Managing Pets: usage/managing-pets.md
+    - Managing Stores: usage/managing-stores.md
+    - Validation: usage/validation.md
+  - Reference:
+    - API Reference: reference/api-reference.md
+    - Custom Columns: reference/custom-columns.md
+    - OpenAPI Spec: reference/openapi-spec.md
+  - Contributing:
+    - Development: contributing/development.md
+    - Guidelines: contributing/guidelines.md
+  - About:
+    - License: about/license.md
+    - Roadmap: about/roadmap.md
+    - Support: about/support.md
+
+# Watch additional files
+watch:
+  - docs/
+  - crds/
+  - examples/

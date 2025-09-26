@@ -1,0 +1,59 @@
+apiVersion: apps.company.io/v1
+kind: ApplicationMetadata
+metadata:
+  name: customer-portal
+  namespace: customer-apps
+  labels:
+    env: production
+    team: frontend
+    criticality: high
+  annotations:
+    description: "Customer Portal Application Metadata"
+spec:
+  id: "cust-portal-001"
+  name: "customer-portal"
+  businessUnit: "digital-experience"
+  environment: "production"
+  version: "2.3.1"
+  description: |
+    Customer Portal application providing self-service capabilities
+    for account management, billing, and support requests.
+  team:
+    owner: "frontend-team"
+    email: "frontend-team@company.io"
+    slack: "#frontend-support"
+  composition:
+    - name: "portal-ui"
+      type: "frontend"
+      version: "2.3.1"
+      repository: "https://github.com/company/portal-ui.git"
+      dependencies:
+        - "auth-service"
+        - "customer-api"
+    - name: "customer-api"
+      type: "backend"
+      version: "1.8.0"
+      repository: "https://github.com/company/customer-api.git"
+      dependencies:
+        - "customer-db"
+        - "cache-service"
+    - name: "customer-db"
+      type: "database"
+      version: "postgres-13.4"
+    - name: "cache-service"
+      type: "cache"
+      version: "redis-6.2"
+    - name: "auth-service"
+      type: "service"
+      version: "3.1.0"
+      repository: "https://github.com/company/auth-service.git"
+  tracking:
+    jira: "CUST-1234"
+    repository: "https://github.com/company/customer-portal.git"
+    pipeline: "customer-portal/production"
+    documentation: "https://docs.company.io/customer-portal"
+  tags:
+    - frontend
+    - customer-facing
+    - business-critical
+    - oauth-enabled

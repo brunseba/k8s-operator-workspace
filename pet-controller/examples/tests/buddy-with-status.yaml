@@ -1,0 +1,20 @@
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: buddy
+  namespace: default
+  labels:
+    app: petstore
+    owner: john
+spec:
+  id: 1
+  name: "Buddy"
+status:
+  phase: "Active"
+  conditions:
+  - type: "Ready"
+    status: "True"
+    lastTransitionTime: "2025-09-26T00:42:00Z"
+    reason: "PetHealthy"
+    message: "Pet is now active and healthy"
+  observedGeneration: 1

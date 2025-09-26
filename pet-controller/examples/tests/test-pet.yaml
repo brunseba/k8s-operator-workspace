@@ -1,0 +1,11 @@
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: new-test-pet
+  namespace: default
+  labels:
+    test: controller-demo
+spec:
+  id: 12  # Even ID - should become Active quickly
+  name: "New Test Pet"
+  tag: "demo-2025"

@@ -1,0 +1,183 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pet-controller
+  namespace: pet-system
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pet-controller
+      app.kubernetes.io/component: controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pet-controller
+        app.kubernetes.io/part-of: petstore-system
+        app.kubernetes.io/component: controller
+    spec:
+      serviceAccountName: pet-controller
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: controller
+        image: python:3.11-slim
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          set -e
+          echo "🚀 Starting Pet Controller..."
+          
+          echo "📦 Installing dependencies..."
+          pip install --no-cache-dir \
+            kubernetes==29.0.0 \
+            kopf==1.37.2 \
+            pyyaml==6.0.1
+          
+          echo "📁 Setting up controller..."
+          mkdir -p /workdir/controller
+          cd /workdir
+          cp /app/code/main.py /workdir/controller/__main__.py
+          cp /app/code/__init__.py /workdir/controller/__init__.py
+          chmod -R 755 /workdir/controller
+          touch /tmp/healthy
+          
+          echo "▶️ Running controller..."
+          cd /workdir
+          exec python3 -m controller
+        
+        env:
+        - name: PYTHONPATH
+          value: "/workdir"
+        - name: KOPF_LOG_FORMAT
+          value: "plain"
+        - name: KOPF_LOG_LEVEL
+          value: "DEBUG"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: PYTHONDONTWRITEBYTECODE
+          value: "1"
+        - name: HOME
+          value: "/tmp"
+        - name: USER
+          value: "appuser"
+        - name: LOGNAME
+          value: "appuser"
+        - name: CONTROLLER_NAME
+          value: "pet-controller"
+        - name: CONTROLLER_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        
+        ports:
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        
+        volumeMounts:
+        - mountPath: /app/code
+          name: controller-code
+          readOnly: true
+        - name: workdir
+          mountPath: /workdir
+        - name: tmp
+          mountPath: /tmp
+        
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+            ephemeral-storage: 1Gi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+            ephemeral-storage: 500Mi
+        
+        livenessProbe:
+          exec:
+            command:
+            - python3
+            - -c
+            - |
+              import sys, os
+              try:
+                  if not os.path.isfile('/tmp/healthy'):
+                      print("Health file not found")
+                      sys.exit(1)
+                  sys.exit(0)
+              except Exception as e:
+                  print(f"Liveness check failed: {e}")
+                  sys.exit(1)
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        
+        readinessProbe:
+          exec:
+            command:
+            - python3
+            - -c
+            - |
+              import sys, os
+              try:
+                  # Check workdir setup
+                  if not os.path.isfile('/workdir/controller/__main__.py'):
+                      print("Controller code not found")
+                      sys.exit(1)
+                  sys.exit(0)
+              except Exception as e:
+                  print(f"Readiness check failed: {e}")
+                  sys.exit(1)
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          seccompProfile:
+            type: RuntimeDefault
+      
+      volumes:
+      - name: controller-code
+        configMap:
+          name: pet-controller-code
+      - name: workdir
+        emptyDir:
+          medium: Memory
+      - name: tmp
+        emptyDir: {}
+      
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - pet-controller
+              topologyKey: kubernetes.io/hostname

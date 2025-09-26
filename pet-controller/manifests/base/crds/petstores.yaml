@@ -1,0 +1,180 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: petstores.petstore.example.com
+  annotations:
+    description: "Custom Resource Definition for PetStore management based on Swagger Petstore OpenAPI specification"
+spec:
+  group: petstore.example.com
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        description: "A pet store that manages collections of pets"
+        required:
+        - spec
+        properties:
+          spec:
+            type: object
+            description: "PetStore specification"
+            required:
+            - name
+            properties:
+              name:
+                type: string
+                description: "Name of the pet store"
+                minLength: 1
+                maxLength: 255
+                pattern: "^[a-zA-Z0-9\\s\\-_\\.]+$"
+              description:
+                type: string
+                description: "Description of the pet store"
+                maxLength: 1000
+              config:
+                type: object
+                description: "Store configuration settings"
+                properties:
+                  maxPets:
+                    type: integer
+                    description: "Maximum number of pets allowed in the store"
+                    minimum: 1
+                    maximum: 10000
+                    default: 100
+                  defaultLimit:
+                    type: integer
+                    description: "Default limit for pet listing operations"
+                    minimum: 1
+                    maximum: 100
+                    default: 20
+                  allowedTags:
+                    type: array
+                    description: "List of allowed tags for pets in this store"
+                    items:
+                      type: string
+                      maxLength: 50
+                      pattern: "^[a-zA-Z0-9\\s\\-_\\.]+$"
+                  enablePagination:
+                    type: boolean
+                    description: "Whether pagination is enabled for pet listings"
+                    default: true
+              endpoints:
+                type: object
+                description: "API endpoint configuration"
+                properties:
+                  baseUrl:
+                    type: string
+                    description: "Base URL for the pet store API"
+                    format: uri
+                    pattern: "^https?://.*"
+                  version:
+                    type: string
+                    description: "API version"
+                    pattern: "^v[0-9]+$"
+                    default: "v1"
+              security:
+                type: object
+                description: "Security configuration"
+                properties:
+                  requireAuthentication:
+                    type: boolean
+                    description: "Whether authentication is required"
+                    default: true
+                  allowedOrigins:
+                    type: array
+                    description: "Allowed CORS origins"
+                    items:
+                      type: string
+                      format: uri
+          status:
+            type: object
+            description: "PetStore status information"
+            properties:
+              phase:
+                type: string
+                description: "Current phase of the pet store"
+                enum:
+                - "Initializing"
+                - "Ready"
+                - "Degraded"
+                - "Error"
+                default: "Initializing"
+              petCount:
+                type: integer
+                description: "Current number of pets in the store"
+                minimum: 0
+              lastSync:
+                type: string
+                format: date-time
+                description: "Last time the store was synchronized"
+              conditions:
+                type: array
+                description: "Conditions represent the latest available observations of the store's current state"
+                items:
+                  type: object
+                  required:
+                  - type
+                  - status
+                  properties:
+                    type:
+                      type: string
+                      description: "Type of condition"
+                    status:
+                      type: string
+                      description: "Status of the condition"
+                      enum:
+                      - "True"
+                      - "False"
+                      - "Unknown"
+                    lastTransitionTime:
+                      type: string
+                      format: date-time
+                      description: "Last time the condition transitioned from one status to another"
+                    reason:
+                      type: string
+                      description: "Unique, one-word, CamelCase reason for the condition's last transition"
+                    message:
+                      type: string
+                      description: "Human-readable message indicating details about last transition"
+              observedGeneration:
+                type: integer
+                format: int64
+                description: "The generation observed by the controller"
+    additionalPrinterColumns:
+    - name: Store-Name
+      type: string
+      description: "The store's name"
+      jsonPath: .spec.name
+    - name: Pet-Count
+      type: integer
+      description: "Current number of pets"
+      jsonPath: .status.petCount
+    - name: Max-Pets
+      type: integer
+      description: "Maximum pets allowed"
+      jsonPath: .spec.config.maxPets
+    - name: Phase
+      type: string
+      description: "The store's current phase"
+      jsonPath: .status.phase
+    - name: Last-Sync
+      type: string
+      description: "Last synchronization time"
+      jsonPath: .status.lastSync
+    - name: Age
+      type: date
+      description: "Time since creation"
+      jsonPath: .metadata.creationTimestamp
+  scope: Namespaced
+  names:
+    plural: petstores
+    singular: petstore
+    kind: PetStore
+    shortNames:
+    - ps
+    - store
+    categories:
+    - petstore
+    - management

@@ -1,0 +1,143 @@
+# Example PetStore Resources
+# These examples demonstrate different PetStore configurations based on the OpenAPI specification
+
+---
+apiVersion: petstore.example.com/v1
+kind: PetStore
+metadata:
+  name: main-petstore
+  namespace: petstore-demo
+  labels:
+    app: petstore
+    tier: production
+    location: downtown
+spec:
+  name: "Downtown Pet Store"
+  description: "Main pet store location with comprehensive pet services"
+  config:
+    maxPets: 500
+    defaultLimit: 25
+    allowedTags:
+    - "cat"
+    - "dog"
+    - "bird"
+    - "fish"
+    - "rabbit"
+    - "hamster"
+    enablePagination: true
+  endpoints:
+    baseUrl: "https://api.petstore.example.com"
+    version: "v1"
+  security:
+    requireAuthentication: true
+    allowedOrigins:
+    - "https://petstore.example.com"
+    - "https://mobile.petstore.example.com"
+
+---
+apiVersion: petstore.example.com/v1
+kind: PetStore
+metadata:
+  name: small-branch
+  namespace: petstore-demo
+  labels:
+    app: petstore
+    tier: branch
+    location: suburb
+spec:
+  name: "Suburban Branch Store"
+  description: "Smaller branch location focusing on common pets"
+  config:
+    maxPets: 100
+    defaultLimit: 10
+    allowedTags:
+    - "cat"
+    - "dog"
+    - "bird"
+    enablePagination: true
+  endpoints:
+    baseUrl: "https://branch.petstore.example.com"
+    version: "v1"
+  security:
+    requireAuthentication: true
+    allowedOrigins:
+    - "https://branch.petstore.example.com"
+
+---
+# Example for development/testing environment
+apiVersion: petstore.example.com/v1
+kind: PetStore
+metadata:
+  name: dev-petstore
+  namespace: petstore-dev
+  labels:
+    app: petstore
+    tier: development
+    environment: dev
+spec:
+  name: "Development Pet Store"
+  description: "Development environment for testing new features"
+  config:
+    maxPets: 50
+    defaultLimit: 5
+    allowedTags:
+    - "test-pet"
+    - "demo-animal"
+    - "qa-specimen"
+    enablePagination: false
+  endpoints:
+    baseUrl: "http://localhost:8080"
+    version: "v1"
+  security:
+    requireAuthentication: false
+    allowedOrigins:
+    - "http://localhost:3000"
+    - "http://localhost:8080"
+
+---
+# Example with status information (typically set by a controller)
+apiVersion: petstore.example.com/v1
+kind: PetStore
+metadata:
+  name: active-store
+  namespace: petstore-demo
+  labels:
+    app: petstore
+    tier: production
+    location: central
+spec:
+  name: "Central Pet Store"
+  description: "High-capacity store in central location"
+  config:
+    maxPets: 1000
+    defaultLimit: 50
+    allowedTags:
+    - "cat"
+    - "dog"
+    - "bird"
+    - "exotic"
+    enablePagination: true
+  endpoints:
+    baseUrl: "https://central.petstore.example.com"
+    version: "v1"
+  security:
+    requireAuthentication: true
+    allowedOrigins:
+    - "https://central.petstore.example.com"
+    - "https://admin.petstore.example.com"
+status:
+  phase: "Ready"
+  petCount: 247
+  lastSync: "2025-01-26T00:15:30Z"
+  observedGeneration: 1
+  conditions:
+  - type: "Ready"
+    status: "True"
+    lastTransitionTime: "2025-01-26T00:00:00Z"
+    reason: "StoreHealthy"
+    message: "Store is operational and serving requests"
+  - type: "SyncComplete"
+    status: "True"
+    lastTransitionTime: "2025-01-26T00:15:30Z"
+    reason: "SyncSuccessful"
+    message: "Latest sync completed successfully"

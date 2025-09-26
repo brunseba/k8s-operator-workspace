@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pet-controller-simple
+  namespace: petstore-system
+  labels:
+    app: pet-controller-simple
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pet-controller-simple
+  template:
+    metadata:
+      labels:
+        app: pet-controller-simple
+    spec:
+      serviceAccountName: pet-controller
+      containers:
+      - name: pet-controller
+        image: python:3.11-slim
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          apt-get update && apt-get install -y gcc git
+          pip install kubernetes==29.0.0 kopf==1.37.2 pyyaml==6.0.1 asyncio-throttle==1.0.2
+          git clone https://github.com/your-repo/pet-controller.git || echo "Using inline code"
+          cat > controller.py << 'EOF'
+          #!/usr/bin/env python3
+          import kopf
+          import logging
+          from kubernetes import client, config
+
+          logging.basicConfig(level=logging.INFO)
+
+          @kopf.on.startup()
+          def configure(settings, **_):
+              config.load_incluster_config()
+              logging.info("Pet Controller started!")
+
+          @kopf.on.create('petstore.example.com', 'v1', 'pets')
+          def create_pet(spec, name, namespace, **kwargs):
+              logging.info(f"Pet created: {namespace}/{name}")
+
+          @kopf.on.update('petstore.example.com', 'v1', 'pets')  
+          def update_pet(spec, name, namespace, **kwargs):
+              logging.info(f"Pet updated: {namespace}/{name}")
+
+          @kopf.on.delete('petstore.example.com', 'v1', 'pets')
+          def delete_pet(spec, name, namespace, **kwargs):
+              logging.info(f"Pet deleted: {namespace}/{name}")
+
+          if __name__ == '__main__':
+              kopf.run()
+          EOF
+          python controller.py
+        env:
+        - name: KOPF_LOG_LEVEL
+          value: "INFO"
+        resources:
+          limits:
+            cpu: 500m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi

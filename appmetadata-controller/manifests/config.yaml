@@ -1,0 +1,17 @@
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  use_json: false
+
+metrics:
+  enabled: true
+  port: 9090
+  path: /metrics
+
+validation:
+  strict_dependency_checks: true
+  verify_git_repos: true
+  verify_jira_tickets: false
+  auto_status_updates: true
+
+reconcile_interval: 300  # 5 minutes

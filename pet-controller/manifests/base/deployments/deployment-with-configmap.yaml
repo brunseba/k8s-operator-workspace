@@ -1,0 +1,137 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pet-controller-code
+  namespace: petstore-system
+data:
+  controller.py: |
+    #!/usr/bin/env python3
+    """
+    Pet Controller - Kubernetes Controller for Pet CRD
+    """
+    import logging
+    import kopf
+    from kubernetes import client, config
+    from datetime import datetime, timezone
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+
+    def validate_pet_spec(spec):
+        if 'id' not in spec:
+            return False, "Missing required field 'id'"
+        if 'name' not in spec:
+            return False, "Missing required field 'name'"
+        pet_id = spec['id']
+        if not isinstance(pet_id, int) or pet_id < 1:
+            return False, f"Invalid ID: {pet_id}. Must be integer >= 1"
+        pet_name = spec['name']
+        if not isinstance(pet_name, str) or len(pet_name) == 0:
+            return False, f"Invalid name: {pet_name}. Must be non-empty string"
+        return True, "Valid"
+
+    def simulate_pet_health_check(spec):
+        pet_id = spec['id']
+        pet_name = spec['name']
+        if pet_id % 2 == 0:
+            return True, f"Pet {pet_name} (ID: {pet_id}) is healthy"
+        else:
+            return pet_id % 3 == 0, f"Pet {pet_name} (ID: {pet_id}) health check in progress"
+
+    @kopf.on.startup()
+    def configure(settings, **_):
+        config.load_incluster_config()
+        logger.info("🐾 Pet Controller started successfully!")
+        logger.info("👀 Watching for Pet resources...")
+
+    @kopf.on.create('petstore.example.com', 'v1', 'pets')
+    async def create_pet(spec, name, namespace, logger, **kwargs):
+        logger.info(f"🆕 Creating Pet: {namespace}/{name}")
+        
+        is_valid, message = validate_pet_spec(spec)
+        if not is_valid:
+            logger.error(f"❌ Pet {namespace}/{name} validation failed: {message}")
+            return {"status": "error", "message": message}
+        
+        is_healthy, health_msg = simulate_pet_health_check(spec)
+        phase = "Active" if is_healthy else "Pending"
+        
+        logger.info(f"✅ Pet {namespace}/{name} validated and processed - Phase: {phase}")
+        logger.info(f"🩺 Health check: {health_msg}")
+        
+        return {"status": "created", "phase": phase, "health": health_msg}
+
+    @kopf.on.update('petstore.example.com', 'v1', 'pets')
+    async def update_pet(spec, name, namespace, logger, **kwargs):
+        logger.info(f"📝 Updating Pet: {namespace}/{name}")
+        
+        is_valid, message = validate_pet_spec(spec)
+        if not is_valid:
+            logger.error(f"❌ Pet {namespace}/{name} update validation failed: {message}")
+            return {"status": "error", "message": message}
+        
+        is_healthy, health_msg = simulate_pet_health_check(spec)
+        phase = "Active" if is_healthy else "Pending"
+        
+        logger.info(f"✅ Pet {namespace}/{name} updated - Phase: {phase}")
+        return {"status": "updated", "phase": phase}
+
+    @kopf.on.delete('petstore.example.com', 'v1', 'pets')
+    async def delete_pet(spec, name, namespace, logger, **kwargs):
+        logger.info(f"🗑️ Deleting Pet: {namespace}/{name} (ID: {spec.get('id', 'unknown')})")
+        logger.info(f"✅ Pet {namespace}/{name} cleanup completed")
+
+    if __name__ == '__main__':
+        logger.info("🚀 Starting Pet Controller...")
+        kopf.run()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pet-controller
+  namespace: petstore-system
+  labels:
+    app: pet-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pet-controller
+  template:
+    metadata:
+      labels:
+        app: pet-controller
+    spec:
+      serviceAccountName: pet-controller
+      containers:
+      - name: pet-controller
+        image: python:3.11-slim
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          echo "🚀 Installing dependencies..."
+          apt-get update && apt-get install -y gcc
+          pip install kubernetes==29.0.0 kopf==1.37.2 pyyaml==6.0.1 asyncio-throttle==1.0.2
+          echo "📁 Copying controller code..."
+          cp /app/code/controller.py ./controller.py
+          echo "▶️ Starting Pet Controller..."
+          python controller.py
+        env:
+        - name: KOPF_LOG_LEVEL
+          value: "INFO"
+        - name: KOPF_LOG_FORMAT
+          value: "plain"
+        volumeMounts:
+        - name: controller-code
+          mountPath: /app/code
+        resources:
+          limits:
+            cpu: 500m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+      volumes:
+      - name: controller-code
+        configMap:
+          name: pet-controller-code

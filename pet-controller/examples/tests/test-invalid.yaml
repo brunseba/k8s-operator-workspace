@@ -1,0 +1,8 @@
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: test-invalid
+  namespace: default
+spec:
+  id: 0  # Below minimum of 1 - this should fail
+  name: "Invalid Pet"

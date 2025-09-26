@@ -1,0 +1,412 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: appmetadata-controller-code
+  namespace: appmetadata-system
+  labels:
+    app.kubernetes.io/name: appmetadata-controller
+    app.kubernetes.io/part-of: appmetadata-system
+    app.kubernetes.io/version: "1.0.0"
+data:
+  __init__.py: |
+    """
+    Controller package for ApplicationMetadata.
+    """
+
+  __main__.py: |
+    """
+    Main entry point for ApplicationMetadata controller.
+    """
+    import asyncio
+    import logging
+    import os
+    import signal
+    import sys
+
+    import kopf
+    from prometheus_client import start_http_server
+
+    from .config import load_config
+    from . import handlers  # This imports and registers all kopf handlers
+
+    # Initialize logging
+    logger = logging.getLogger(__name__)
+
+    def main():
+        """Main entry point."""
+        # Load configuration
+        config = load_config()
+        
+        # Configure logging
+        log_level = getattr(logging, config.logging.level.upper())
+        logging.basicConfig(
+            level=log_level,
+            format=config.logging.format
+        )
+        
+        # Start metrics server if enabled
+        if config.metrics.enabled:
+            try:
+                start_http_server(config.metrics.port)
+                logger.info(f"📊 Started metrics server on port {config.metrics.port}")
+            except Exception as e:
+                logger.error(f"❌ Failed to start metrics server: {e}")
+                sys.exit(1)
+        
+        # Log startup
+        logger.info("🚀 Starting ApplicationMetadata Controller")
+        logger.info(f"⚙️  Configuration loaded: {config.dict()}")
+        
+        # Register signal handlers
+        def signal_handler(sig, frame):
+            logger.info("📥 Shutting down gracefully...")
+            sys.exit(0)
+        
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+        
+        # Start kopf
+        kopf.run()
+
+    if __name__ == "__main__":
+        main()
+
+  config.py: |
+    """
+    Configuration management module.
+    """
+    import os
+    from typing import List, Optional
+    from pydantic import BaseModel
+
+    class LoggingConfig(BaseModel):
+        level: str = "INFO"
+        format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+    class MetricsConfig(BaseModel):
+        enabled: bool = True
+        port: int = 9090
+        path: str = "/metrics"
+
+    class ValidationConfig(BaseModel):
+        strict: bool = True
+        max_components: int = 20
+        max_dependencies: int = 10
+        max_maintainers: int = 5
+        max_tags: int = 10
+        reserved_tags: List[str] = ["system", "legacy", "critical", "deprecated"]
+
+    class Config(BaseModel):
+        logging: LoggingConfig = LoggingConfig()
+        metrics: MetricsConfig = MetricsConfig()
+        validation: ValidationConfig = ValidationConfig()
+
+    def load_config() -> Config:
+        config_path = os.getenv("CONFIG_PATH", "/etc/appmetadata/config.yaml")
+        if os.path.exists(config_path):
+            import yaml
+            with open(config_path) as f:
+                config_data = yaml.safe_load(f)
+            return Config(**config_data)
+        return Config()
+
+  models.py: |
+    """
+    Domain models for ApplicationMetadata.
+    """
+    from enum import Enum
+    from typing import List, Optional
+    from pydantic import BaseModel, Field, EmailStr, HttpUrl, constr
+
+    class Phase(str, Enum):
+        """Application phase."""
+        PENDING = "Pending"
+        ACTIVE = "Active"
+        DEPRECATED = "Deprecated"
+        RETIRED = "Retired"
+        ERROR = "Error"
+
+    class ComponentType(str, Enum):
+        """Component types."""
+        SERVICE = "Service"
+        DATABASE = "Database"
+        CACHE = "Cache"
+        QUEUE = "Queue"
+        STORAGE = "Storage"
+        OTHER = "Other"
+
+    class Environment(str, Enum):
+        """Environment types."""
+        PRODUCTION = "Production"
+        STAGING = "Staging"
+        DEVELOPMENT = "Development"
+        TESTING = "Testing"
+
+    class Component(BaseModel):
+        """Application component."""
+        name: str = Field(..., min_length=1, max_length=64)
+        type: ComponentType
+        version: Optional[str] = None
+        description: Optional[str] = Field(None, max_length=256)
+
+    class Dependency(BaseModel):
+        """External dependency."""
+        name: str = Field(..., min_length=1, max_length=64)
+        type: ComponentType
+        version: Optional[str] = None
+        url: Optional[str] = Field(None, max_length=512)
+
+    class Maintainer(BaseModel):
+        """Application maintainer."""
+        name: str = Field(..., min_length=1, max_length=64)
+        email: str = Field(..., max_length=256)
+        role: Optional[str] = None
+
+    class ApplicationMetadataSpec(BaseModel):
+        """ApplicationMetadata specification."""
+        id: str = Field(..., pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$")
+        name: str = Field(..., min_length=3, max_length=64)
+        description: Optional[str] = Field(None, max_length=512)
+        version: str = Field(..., pattern=r"^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$")
+        businessUnit: str = Field(..., max_length=64)
+        environment: Environment
+        components: Optional[List[Component]] = Field(None, max_items=20)
+        dependencies: Optional[List[Dependency]] = Field(None, max_items=10)
+        maintainers: Optional[List[Maintainer]] = Field(None, max_items=5)
+        tags: Optional[List[str]] = Field(None, max_items=10)
+
+    class Condition(BaseModel):
+        """Status condition."""
+        type: str
+        status: str
+        lastTransitionTime: str
+        reason: Optional[str] = None
+        message: Optional[str] = None
+
+    class ApplicationMetadataStatus(BaseModel):
+        """ApplicationMetadata status."""
+        observedGeneration: Optional[int] = None
+        phase: Phase = Phase.PENDING
+        lastUpdated: Optional[str] = None
+        conditions: Optional[List[Condition]] = None
+
+  metrics.py: |
+    """
+    Prometheus metrics for ApplicationMetadata controller.
+    """
+    import logging
+    from typing import Dict, Optional
+
+    from prometheus_client import Counter, Gauge, Histogram
+    from controller.models import ApplicationMetadataStatus, Phase
+
+    # Initialize logger
+    logger = logging.getLogger(__name__)
+
+    # Metrics definitions
+    APPS_TOTAL = Gauge(
+        "appmetadata_applications_total",
+        "Total number of applications by phase",
+        ["phase"]
+    )
+
+    APPS_BY_ENVIRONMENT = Gauge(
+        "appmetadata_applications_by_environment",
+        "Number of applications by environment",
+        ["environment"]
+    )
+
+    APPS_BY_BUSINESS_UNIT = Gauge(
+        "appmetadata_applications_by_business_unit",
+        "Number of applications by business unit",
+        ["business_unit"]
+    )
+
+    COMPONENT_COUNT = Gauge(
+        "appmetadata_components_total",
+        "Total number of components by type",
+        ["type"]
+    )
+
+    STATUS_CHANGES = Counter(
+        "appmetadata_status_changes_total",
+        "Number of application status changes",
+        ["from_phase", "to_phase"]
+    )
+
+    VALIDATION_ERRORS = Counter(
+        "appmetadata_validation_errors_total",
+        "Number of validation errors by type",
+        ["error_type"]
+    )
+
+    # Cache for tracking application phases
+    _app_phases: Dict[str, str] = {}
+
+    def _get_app_key(name: str, namespace: str) -> str:
+        """Generate a unique key for an application."""
+        return f"{namespace}/{name}"
+
+    def update_app_metrics(
+        name: str,
+        namespace: str,
+        status: Optional[ApplicationMetadataStatus],
+        deleted: bool = False
+    ) -> None:
+        """Update metrics for an application."""
+        try:
+            app_key = _get_app_key(name, namespace)
+            
+            if deleted:
+                # Decrease counters if app is deleted
+                if app_key in _app_phases:
+                    old_phase = _app_phases[app_key]
+                    APPS_TOTAL.labels(phase=old_phase).dec()
+                    del _app_phases[app_key]
+                return
+            
+            if not status:
+                return
+                
+            # Update phase metrics
+            new_phase = status.phase
+            if app_key in _app_phases:
+                old_phase = _app_phases[app_key]
+                if old_phase != new_phase:
+                    # Phase changed
+                    APPS_TOTAL.labels(phase=old_phase).dec()
+                    APPS_TOTAL.labels(phase=new_phase).inc()
+                    STATUS_CHANGES.labels(
+                        from_phase=old_phase,
+                        to_phase=new_phase
+                    ).inc()
+            else:
+                # New application
+                APPS_TOTAL.labels(phase=new_phase).inc()
+            
+            _app_phases[app_key] = new_phase
+            
+        except Exception as e:
+            logger.error(f"Failed to update metrics for {namespace}/{name}: {e}")
+
+  handlers.py: |
+    """
+    Event handlers for ApplicationMetadata controller.
+    """
+    import logging
+    from datetime import datetime, timezone
+    from typing import Dict, Any, Optional
+
+    import kopf
+    from kubernetes import client
+    from .models import (
+        ApplicationMetadataSpec,
+        ApplicationMetadataStatus,
+        Phase
+    )
+    from .metrics import update_app_metrics
+
+    # Initialize logging
+    logger = logging.getLogger(__name__)
+
+    @kopf.on.create('apps.company.io', 'v1', 'applicationmetadata')
+    def create_fn(spec: Dict[str, Any], meta: Dict[str, Any], status: Dict[str, Any], **kwargs):
+        """Handle creation of ApplicationMetadata resources."""
+        name = meta["name"]
+        namespace = meta["namespace"]
+        logger.info(f"📦 Creating ApplicationMetadata: {namespace}/{name}")
+        
+        try:
+            # Validate spec using Pydantic model
+            app_spec = ApplicationMetadataSpec(**spec)
+            
+            # Set initial status
+            status = ApplicationMetadataStatus(
+                phase=Phase.PENDING,
+                lastUpdated=datetime.now(timezone.utc).isoformat(),
+                observedVersion=spec.get("version"),
+                observedGeneration=meta.get("generation", 1)
+            )
+            
+            # Update metrics
+            update_app_metrics(name, namespace, status)
+            
+            return {"status": status.dict()}
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to create ApplicationMetadata {namespace}/{name}: {e}")
+            raise kopf.PermanentError(str(e))
+
+    @kopf.on.update('apps.company.io', 'v1', 'applicationmetadata')
+    def update_fn(spec: Dict[str, Any], meta: Dict[str, Any], status: Dict[str, Any], **kwargs):
+        """Handle updates to ApplicationMetadata resources."""
+        name = meta["name"]
+        namespace = meta["namespace"]
+        logger.info(f"📝 Updating ApplicationMetadata: {namespace}/{name}")
+        
+        try:
+            # Validate spec using Pydantic model
+            app_spec = ApplicationMetadataSpec(**spec)
+            
+            # Update status
+            new_status = ApplicationMetadataStatus(
+                phase=Phase.ACTIVE,
+                lastUpdated=datetime.now(timezone.utc).isoformat(),
+                observedVersion=spec.get("version"),
+                observedGeneration=meta.get("generation", 1)
+            )
+            
+            # Update metrics
+            update_app_metrics(name, namespace, new_status)
+            
+            return {"status": new_status.dict()}
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to update ApplicationMetadata {namespace}/{name}: {e}")
+            raise kopf.PermanentError(str(e))
+
+    @kopf.on.delete('apps.company.io', 'v1', 'applicationmetadata')
+    def delete_fn(meta: Dict[str, Any], **kwargs):
+        """Handle deletion of ApplicationMetadata resources."""
+        name = meta["name"]
+        namespace = meta["namespace"]
+        logger.info(f"🗑️ Deleting ApplicationMetadata: {namespace}/{name}")
+        
+        try:
+            # Update metrics
+            update_app_metrics(name, namespace, None, deleted=True)
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to delete ApplicationMetadata {namespace}/{name}: {e}")
+            # Don't raise error on deletion
+
+  config.yaml: |
+    logging:
+      level: INFO
+      format: json
+      handlers:
+        - console
+
+    metrics:
+      enabled: true
+      port: 9090
+      path: /metrics
+
+    validation:
+      strict: true
+      verify_repos: true
+      strict_checks: true
+      auto_id_prefix: app-
+      max_components: 20
+      max_dependencies: 10
+      max_maintainers: 5
+      max_tags: 10
+      reserved_tags:
+        - system
+        - legacy
+        - critical
+        - deprecated
+
+    reconcile_interval: 300  # 5 minutes
+
+    version: "1.0.0"

@@ -1,0 +1,228 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: applicationmetadata.apps.company.io
+spec:
+  group: apps.company.io
+  names:
+    kind: ApplicationMetadata
+    plural: applicationmetadata
+    shortNames:
+      - appmd
+      - amd
+    singular: applicationmetadata
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: Application metadata resource
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values.'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to.'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ApplicationMetadataSpec defines the desired state of an application
+            properties:
+              id:
+                description: Unique identifier for the application
+                type: string
+                pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+              name:
+                description: Human-readable name of the application
+                type: string
+                maxLength: 64
+                minLength: 3
+              description:
+                description: A brief description of what the application does
+                type: string
+                maxLength: 512
+              version:
+                description: Version of the application
+                type: string
+                pattern: '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'
+              businessUnit:
+                description: Business unit responsible for the application
+                type: string
+                maxLength: 64
+              environment:
+                description: The environment where the application runs
+                type: string
+                enum:
+                - development
+                - staging
+                - production
+                - dr
+                - test
+                - qa
+              composition:
+                description: List of application components
+                items:
+                  description: Application component
+                  properties:
+                    name:
+                      description: Name of the component
+                      type: string
+                      pattern: '^[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]$'
+                    type:
+                      description: Type of the component
+                      type: string
+                      enum:
+                      - frontend
+                      - backend
+                      - service
+                      - database
+                      - cache
+                      - queue
+                      - middleware
+                      - storage
+                    version:
+                      description: Version of the component
+                      type: string
+                    repository:
+                      description: Repository URL
+                      type: string
+                      format: uri
+                    dependencies:
+                      description: Component dependencies
+                      type: array
+                      items:
+                        type: string
+                  required:
+                  - name
+                  - type
+                  - version
+                  type: object
+                type: array
+              team:
+                description: Team information
+                type: object
+                properties:
+                  owner:
+                    description: Team owner
+                    type: string
+                    pattern: '^[a-zA-Z][-a-zA-Z0-9.]*[a-zA-Z0-9]$'
+                  email:
+                    description: Team email
+                    type: string
+                    pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+                  slack:
+                    description: Team Slack channel
+                    type: string
+                    pattern: '^#[a-zA-Z0-9_-]+$'
+                required:
+                - owner
+                - email
+                - slack
+              tracking:
+                description: Application tracking information
+                type: object
+                properties:
+                  jira:
+                    description: JIRA ticket reference
+                    type: string
+                    pattern: '^[A-Z]+-[0-9]+$'
+                  repository:
+                    description: Main repository URL
+                    type: string
+                    format: uri
+                  pipeline:
+                    description: CI/CD pipeline reference
+                    type: string
+                    pattern: '^[a-zA-Z][-a-zA-Z0-9/]*[a-zA-Z0-9]$'
+                  documentation:
+                    description: Documentation URL
+                    type: string
+                    format: uri
+                required:
+                - repository
+                - pipeline
+                - documentation
+              tags:
+                description: List of tags for the application
+                items:
+                  type: string
+                  maxLength: 64
+                  pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+                type: array
+            required:
+            - id
+            - name
+            - version
+            - businessUnit
+            - environment
+            type: object
+          status:
+            description: ApplicationMetadataStatus defines the observed state of the application
+            properties:
+              observedGeneration:
+                description: The most recent generation observed by the controller
+                format: int64
+                type: integer
+              observedVersion:
+                description: The most recent spec.version observed by the controller
+                type: string
+              phase:
+                description: The phase of the application
+                enum:
+                - Pending
+                - Active
+                - Deprecated
+                - Retired
+                - Error
+                type: string
+              lastUpdated:
+                description: The last time the status was updated
+                format: date-time
+                type: string
+              conditions:
+                description: List of status conditions
+                items:
+                  description: Condition contains details about the current state
+                  properties:
+                    lastTransitionTime:
+                      description: Time the condition transitioned to its current state
+                      format: date-time
+                      type: string
+                    message:
+                      description: Human-readable details about the condition
+                      type: string
+                    reason:
+                      description: Machine-readable explanation for the current state
+                      type: string
+                    status:
+                      description: Status of the condition (True, False, Unknown)
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: Type of the condition
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

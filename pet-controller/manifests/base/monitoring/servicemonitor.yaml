@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: pet-controller
+  namespace: pet-system
+  labels:
+    app.kubernetes.io/name: pet-controller
+    app.kubernetes.io/part-of: petstore-system
+    app.kubernetes.io/component: controller
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pet-controller
+      app.kubernetes.io/component: controller
+  namespaceSelector:
+    matchNames:
+    - pet-system
+  endpoints:
+  - port: metrics
+    interval: 30s
+    scrapeTimeout: 10s

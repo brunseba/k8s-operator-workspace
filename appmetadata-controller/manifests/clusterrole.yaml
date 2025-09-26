@@ -1,0 +1,28 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: appmetadata-controller
+rules:
+# ApplicationMetadata CRD permissions
+- apiGroups: ["apps.company.io"]
+  resources: ["applicationmetadata", "applicationmetadata/status", "applicationmetadata/finalizers"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+# Core API permissions
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list", "watch"]
+
+- apiGroups: [""]
+  resources: ["events", "configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+# General permissions for watching resources
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+
+# Kopf framework permissions
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

@@ -1,0 +1,11 @@
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: controller-test
+  namespace: default
+  labels:
+    controller-test: "true"
+spec:
+  id: 4  # Even ID - will be marked as healthy
+  name: "Controller Test Pet"
+  tag: "test-automation"

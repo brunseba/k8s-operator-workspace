@@ -1,0 +1,32 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: appmetadata-controller
+  namespace: appmetadata-system
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "services"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps.company.io"]
+  resources: ["applicationmetadata/status"]
+  verbs: ["get", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: appmetadata-controller
+  namespace: appmetadata-system
+subjects:
+- kind: ServiceAccount
+  name: appmetadata-controller
+  namespace: appmetadata-system
+roleRef:
+  kind: Role
+  name: appmetadata-controller
+  apiGroup: rbac.authorization.k8s.io

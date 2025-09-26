@@ -1,0 +1,11 @@
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: pending-demo
+  namespace: default
+  labels:
+    demo: controller-pending-test
+spec:
+  id: 7  # Odd ID, not divisible by 3 - should stay Pending
+  name: "Pending Demo Pet"
+  tag: "needs-time"

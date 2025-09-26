@@ -1,0 +1,170 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pet-controller-config
+  namespace: petstore-system
+data:
+  config.yaml: |
+# Pet Controller Configuration
+controller:
+  name: "pet-controller"
+  namespace: "pet-system"
+  version: "1.0.0"
+  description: "Kubernetes Controller for Pet CRD"
+  
+# Pet CRD Configuration
+pet:
+  group: "petstore.example.com"
+  version: "v1"
+  plural: "pets"
+  kind: "Pet"
+  scope: "Namespaced"
+  
+# Controller Behavior Settings
+settings:
+  # Reconciliation intervals
+  reconcile_interval: 30          # seconds between reconciliation cycles
+  startup_delay: 5                # seconds to wait before starting
+  shutdown_timeout: 30            # seconds to wait for graceful shutdown
+  
+  # Health check settings
+  health_check_timeout: 10        # seconds for health check operations
+  health_check_retry_count: 3     # number of retries for failed health checks
+  health_check_retry_delay: 5     # seconds between retries
+  
+  # Concurrency settings
+  max_concurrent_reconciles: 5    # maximum parallel reconciliation operations
+  max_concurrent_creates: 10      # maximum parallel creation operations
+  
+  # Validation settings
+  strict_validation: true         # enable strict Pet specification validation
+  auto_fix_minor_issues: false    # automatically fix minor validation issues
+  
+  # Performance settings
+  batch_size: 100                 # number of pets to process in batch operations
+  rate_limit_qps: 50              # queries per second rate limit
+  rate_limit_burst: 100           # burst capacity for rate limiting
+  
+# Pet Status Phase Configuration
+phases:
+  default: "Pending"
+  available:
+    - "Pending"    # Initial state, health check in progress
+    - "Active"     # Pet is healthy and ready
+    - "Inactive"   # Pet is temporarily inactive
+    - "Error"      # Pet has validation or runtime errors
+    - "Terminating" # Pet is being deleted
+  
+  # Phase transition rules
+  transitions:
+    Pending:
+      - Active      # when health check passes
+      - Error       # when validation fails
+      - Terminating # when deletion requested
+    Active:
+      - Inactive    # when health check fails
+      - Error       # when validation fails
+      - Terminating # when deletion requested
+    Inactive:
+      - Active      # when health check passes again
+      - Error       # when validation fails
+      - Terminating # when deletion requested
+    Error:
+      - Pending     # when issues are resolved
+      - Terminating # when deletion requested
+
+# Health Check Configuration
+health_check:
+  # Simulation logic (replace with real health check in production)
+  simulation:
+    even_id_healthy: true         # pets with even IDs are immediately healthy
+    odd_id_divisible_by_3: true   # odd IDs divisible by 3 become healthy
+    random_delay_max: 60          # maximum random delay for health checks (seconds)
+  
+  # Real health check settings (for production)
+  real_checks:
+    enabled: false                # enable real health checks
+    endpoint_template: "http://pet-{id}.pets.svc.cluster.local:8080/health"
+    timeout: 5                    # timeout for health check requests
+    expected_status_code: 200     # expected HTTP status code
+    expected_response: '{"status":"healthy"}'
+
+# Logging Configuration
+logging:
+  level: "INFO"                   # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Log rotation settings
+  rotation:
+    enabled: false
+    max_size_mb: 100
+    backup_count: 5
+  
+  # Structured logging
+  structured: false               # enable JSON structured logging
+  include_caller: true            # include caller information in logs
+  
+  # Log levels for different components
+  components:
+    controller: "INFO"
+    validation: "INFO"
+    health_check: "INFO"
+    reconciliation: "DEBUG"
+    kubernetes_client: "WARNING"
+
+# Metrics and Monitoring
+metrics:
+  enabled: true
+  port: 8080                      # metrics endpoint port
+  path: "/metrics"                # metrics endpoint path
+  
+  # Health check endpoints
+  health:
+    enabled: true
+    liveness_path: "/healthz"     # liveness probe endpoint
+    readiness_path: "/ready"      # readiness probe endpoint
+  
+  # Custom metrics
+  custom_metrics:
+    pets_total: "Total number of pets managed"
+    pets_by_phase: "Number of pets grouped by phase"
+    reconciliation_duration: "Time taken for reconciliation operations"
+    validation_errors: "Number of validation errors encountered"
+
+# Security Settings
+security:
+  # Service account settings
+  service_account: "pet-controller"
+  
+  # RBAC settings
+  rbac:
+    cluster_wide: true            # require cluster-wide permissions
+    additional_permissions: []    # additional RBAC permissions if needed
+  
+  # Pod security settings
+  pod_security:
+    run_as_non_root: true
+    read_only_root_filesystem: true
+    drop_all_capabilities: true
+    seccomp_profile: "RuntimeDefault"
+
+# Feature Flags
+feature_flags:
+  enable_status_updates: true     # enable automatic status updates
+  enable_event_recording: true    # enable Kubernetes event recording
+  enable_finalizers: true         # enable finalizers for cleanup
+  enable_webhooks: false          # enable admission webhooks (future feature)
+  enable_metrics: true            # enable metrics collection
+  enable_profiling: false         # enable performance profiling
+
+# Development and Debug Settings
+development:
+  debug_mode: false               # enable debug mode
+  dry_run: false                  # enable dry-run mode (no actual changes)
+  verbose_logging: false          # enable verbose logging
+  log_pet_specs: false            # log full pet specifications (security risk)
+  
+  # Testing settings
+  testing:
+    mock_health_checks: true      # use mocked health checks
+    simulate_failures: false      # simulate random failures for testing

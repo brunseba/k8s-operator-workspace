@@ -1,0 +1,93 @@
+# THESE EXAMPLES WILL FAIL VALIDATION - DO NOT APPLY
+# They are provided for educational purposes to show validation constraints
+
+---
+# Invalid Example 1: Missing required field 'name'
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: invalid-pet-1
+  namespace: default
+spec:
+  id: 1
+  # name is missing - this will fail
+
+---
+# Invalid Example 2: Missing required field 'id'
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: invalid-pet-2
+  namespace: default
+spec:
+  # id is missing - this will fail
+  name: "Invalid Pet"
+
+---
+# Invalid Example 3: ID below minimum value
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: invalid-pet-3
+  namespace: default
+spec:
+  id: 0  # Below minimum of 1 - this will fail
+  name: "Invalid Pet"
+
+---
+# Invalid Example 4: Name too long (over 255 characters)
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: invalid-pet-4
+  namespace: default
+spec:
+  id: 4
+  name: "This name is way too long and exceeds the maximum allowed length of 255 characters which is defined in the CRD schema validation rules and this string is intentionally made very long to demonstrate the validation failure that would occur when trying to create such a resource"  # Over 255 chars
+
+---
+# Invalid Example 5: Name with invalid characters
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: invalid-pet-5
+  namespace: default
+spec:
+  id: 5
+  name: "Pet@#$%"  # Contains invalid characters - only a-zA-Z0-9\s\-_\. allowed
+
+---
+# Invalid Example 6: Empty name
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: invalid-pet-6
+  namespace: default
+spec:
+  id: 6
+  name: ""  # Empty string violates minLength: 1
+
+---
+# Invalid Example 7: Tag too long (over 100 characters)
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: invalid-pet-7
+  namespace: default
+spec:
+  id: 7
+  name: "Valid Pet Name"
+  tag: "this-tag-is-way-too-long-and-exceeds-the-maximum-allowed-length-of-100-characters-for-tags-defined"  # Over 100 chars
+
+---
+# Invalid Example 8: Invalid status phase
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: invalid-pet-8
+  namespace: default
+spec:
+  id: 8
+  name: "Pet with invalid status"
+status:
+  phase: "InvalidPhase"  # Not in allowed enum: Pending, Active, Inactive, Error

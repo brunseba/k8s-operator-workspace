@@ -1,0 +1,12 @@
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: test-pet
+  namespace: default
+  labels:
+    app: petstore
+    test: "true"
+spec:
+  id: 42  # Even number - should be healthy immediately
+  name: "Test Pet"
+  tag: "test-automation"

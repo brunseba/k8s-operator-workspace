@@ -1,0 +1,53 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pet-controller
+rules:
+# Pet and PetStore CRD permissions
+- apiGroups: ["petstore.example.com"]
+  resources: ["pets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["petstore.example.com"]
+  resources: ["pets/status"]
+  verbs: ["get", "update", "patch"]
+- apiGroups: ["petstore.example.com"]
+  resources: ["petstores"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["petstore.example.com"]
+  resources: ["petstores/status"]
+  verbs: ["get"]
+# Event permissions
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["get", "list", "watch", "create", "patch", "update"]
+# Core API permissions (for service discovery)
+- apiGroups: [""]
+  resources: ["namespaces", "services", "pods", "events", "configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Leader election and peering
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Monitoring
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["servicemonitors"]
+  verbs: ["get", "create", "update", "patch", "delete"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pet-controller
+  namespace: pet-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pet-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pet-controller
+subjects:
+- kind: ServiceAccount
+  name: pet-controller
+  namespace: pet-system

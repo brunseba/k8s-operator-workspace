@@ -1,0 +1,45 @@
+apiVersion: apps.company.io/v1
+kind: ApplicationMetadata
+metadata:
+  name: sample-webapp
+  namespace: default
+spec:
+  id: "sample-app-001"
+  name: "Sample Web Application"
+  businessUnit: "engineering"
+  environment: "development"
+  version: "1.0.0"
+  description: "A sample web application to test the ApplicationMetadata controller"
+  
+  team:
+    owner: "dev-team"
+    email: "dev-team@company.io"
+    slack: "#dev-team"
+  
+  composition:
+    - name: "frontend"
+      type: "frontend"
+      version: "1.0.0"
+      repository: "https://github.com/company/sample-frontend"
+    
+    - name: "backend-api"
+      type: "backend"
+      version: "1.0.0"
+      repository: "https://github.com/company/sample-backend"
+      dependencies:
+        - "database"
+    
+    - name: "database"
+      type: "database"
+      version: "1.0.0"
+  
+  tracking:
+    repository: "https://github.com/company/sample-webapp"
+    pipeline: "webapp-pipeline"
+    documentation: "https://docs.company.io/sample-webapp"
+    jira: "PROJ-123"
+  
+  tags:
+    - "web"
+    - "sample"
+    - "demo"

@@ -1,0 +1,232 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pet-controller
+  namespace: petstore-system
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pet-controller
+      app.kubernetes.io/component: controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pet-controller
+        app.kubernetes.io/part-of: petstore-system
+        app.kubernetes.io/component: controller
+      annotations:
+        config/checksum: "${CONFIG_CHECKSUM}"
+    spec:
+      serviceAccountName: pet-controller
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: controller
+        image: python:3.11-slim
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          set -e
+          echo "🚀 Starting Pet Controller..."
+          
+          # Setup Python environment
+          mkdir -p /tmp/.pip /workdir
+          export PIP_CACHE_DIR=/tmp/.pip
+          export PYTHONPATH=/workdir
+          
+          echo "📦 Installing Python dependencies..."
+          pip install --no-cache-dir \
+            kubernetes==29.0.0 \
+            kopf==1.37.2 \
+            pyyaml==6.0.1 \
+            prometheus-client==0.21.0 \
+            httpx==0.25.0 \
+            rich==13.3.4
+          
+          echo "📁 Setting up controller..."
+          mkdir -p /workdir/controller
+          cd /workdir
+          cp /app/code/*.py /workdir/controller/
+          chmod -R 755 /workdir/controller
+          touch /tmp/healthy
+          
+          echo "⚙️ Configuration loaded from: ${CONFIG_PATH}"
+          if [ -f "${CONFIG_PATH}" ]; then
+            echo "📋 Configuration preview:"
+            head -10 "${CONFIG_PATH}"
+          fi
+          
+          echo "▶️ Running controller..."
+          cd /workdir
+          exec python3 -m controller.__main__
+        
+        env:
+        # Configuration
+        - name: CONFIG_PATH
+          value: "/etc/petstore/config.yaml"
+        - name: PYTHONPATH
+          value: "/workdir"
+        
+        # Kopf settings
+        - name: KOPF_LOG_FORMAT
+          value: "plain"
+        - name: KOPF_LOG_LEVEL
+          value: "DEBUG"
+        
+        # Python settings
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: PYTHONDONTWRITEBYTECODE
+          value: "1"
+        - name: HOME
+          value: "/tmp"
+        
+        # Controller settings
+        - name: CONTROLLER_NAME
+          value: "pet-controller"
+        - name: CONTROLLER_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        
+        ports:
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        
+        volumeMounts:
+        - mountPath: /app/code
+          name: controller-code
+          readOnly: true
+        - mountPath: /etc/petstore/config.yaml
+          name: config
+          readOnly: true
+          subPath: config.yaml
+        - name: workdir
+          mountPath: /workdir
+        - name: tmp
+          mountPath: /tmp
+        
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+            ephemeral-storage: 1Gi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+            ephemeral-storage: 500Mi
+        
+        livenessProbe:
+          exec:
+            command:
+            - python3
+            - -c
+            - |
+              import sys, os, socket
+              try:
+                  # Check health file
+                  if not os.path.isfile('/tmp/healthy'):
+                      print("Health file not found")
+                      sys.exit(1)
+                  
+                  # Check metrics port is open
+                  s = socket.socket()
+                  s.settimeout(2)
+                  s.connect(("127.0.0.1", 9090))
+                  s.close()
+                  sys.exit(0)
+              except Exception as e:
+                  print(f"Liveness check failed: {e}")
+                  sys.exit(1)
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        
+        readinessProbe:
+          exec:
+            command:
+            - python3
+            - -c
+            - |
+              import sys, urllib.request
+              try:
+                  # Check metrics endpoint
+                  resp = urllib.request.urlopen('http://127.0.0.1:9090/metrics', timeout=2)
+                  if resp.status != 200:
+                      print(f"Metrics returned {resp.status}")
+                      sys.exit(1)
+                  sys.exit(0)
+              except Exception as e:
+                  print(f"Readiness check failed: {e}")
+                  sys.exit(1)
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          seccompProfile:
+            type: RuntimeDefault
+      
+      volumes:
+      - name: controller-code
+        configMap:
+          name: pet-controller-code
+          items:
+          - key: __init__.py
+            path: __init__.py
+          - key: __main__.py
+            path: __main__.py
+          - key: config.py
+            path: config.py
+          - key: models.py
+            path: models.py
+          - key: handlers.py
+            path: handlers.py
+      - name: config
+        configMap:
+          name: pet-controller-config
+      - name: workdir
+        emptyDir:
+          medium: Memory
+      - name: tmp
+        emptyDir: {}
+      
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - pet-controller
+              topologyKey: kubernetes.io/hostname

@@ -1,0 +1,87 @@
+# Example Pet Resources
+# These examples demonstrate different Pet configurations based on the OpenAPI specification
+
+---
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: fluffy-cat
+  namespace: petstore-demo
+  labels:
+    app: petstore
+    animal-type: cat
+    owner: alice
+spec:
+  id: 1001
+  name: "Fluffy"
+  tag: "domestic-cat"
+
+---
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: max-dog
+  namespace: petstore-demo
+  labels:
+    app: petstore
+    animal-type: dog
+    owner: bob
+spec:
+  id: 1002
+  name: "Max"
+  tag: "golden-retriever"
+
+---
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: tweety-bird
+  namespace: petstore-demo
+  labels:
+    app: petstore
+    animal-type: bird
+    owner: charlie
+spec:
+  id: 1003
+  name: "Tweety"
+  tag: "canary"
+
+---
+# Example without optional tag field
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: mystery-pet
+  namespace: petstore-demo
+  labels:
+    app: petstore
+    owner: dana
+spec:
+  id: 1004
+  name: "Mystery Pet"
+  # No tag specified - this is optional
+
+---
+# Example with status information (typically set by a controller)
+apiVersion: petstore.example.com/v1
+kind: Pet
+metadata:
+  name: active-pet
+  namespace: petstore-demo
+  labels:
+    app: petstore
+    animal-type: dog
+    owner: eve
+spec:
+  id: 1005
+  name: "Active Pet"
+  tag: "labrador"
+status:
+  phase: "Active"
+  observedGeneration: 1
+  conditions:
+  - type: "Ready"
+    status: "True"
+    lastTransitionTime: "2025-01-26T00:00:00Z"
+    reason: "PetHealthy"
+    message: "Pet is healthy and active"
