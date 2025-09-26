@@ -1,0 +1,156 @@
+---
+apiVersion: metadata.app.example.com/v1
+kind: ApplicationMetadata
+metadata:
+  name: frontend-service
+  namespace: web
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/part-of: webshop
+    environment: production
+spec:
+  name: "E-commerce Frontend"
+  description: "React-based frontend for the e-commerce platform"
+  version: "2.5.0"
+  maintainers:
+    - name: "Frontend Team"
+      email: "frontend@example.com"
+      slack: "#frontend-team"
+  repository:
+    url: "https://github.com/example/webshop-frontend"
+    branch: "main"
+    path: "/src"
+  dependencies:
+    - name: "auth-service"
+      version: ">=1.0.0"
+      required: true
+    - name: "catalog-service"
+      version: "2.x"
+      required: true
+    - name: "cart-service"
+      version: ">=1.5.0"
+      required: true
+  monitoring:
+    endpoints:
+      - path: "/metrics"
+        port: 8080
+      - path: "/health"
+        port: 8081
+    alerts:
+      - name: "HighLatency"
+        threshold: "2s"
+        severity: "warning"
+      - name: "ErrorRate"
+        threshold: "1%"
+        severity: "critical"
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+---
+apiVersion: metadata.app.example.com/v1
+kind: ApplicationMetadata
+metadata:
+  name: order-processor
+  namespace: backend
+  labels:
+    app.kubernetes.io/name: order-processor
+    app.kubernetes.io/part-of: webshop
+    environment: production
+spec:
+  name: "Order Processing Service"
+  description: "Handles order processing and payment integration"
+  version: "1.3.0"
+  maintainers:
+    - name: "Backend Team"
+      email: "backend@example.com"
+      slack: "#backend-team"
+  repository:
+    url: "https://github.com/example/order-processor"
+    branch: "main"
+    path: "/src"
+  dependencies:
+    - name: "payment-gateway"
+      version: ">=2.0.0"
+      required: true
+    - name: "inventory-service"
+      version: "1.x"
+      required: true
+    - name: "notification-service"
+      version: ">=1.0.0"
+      required: false
+  monitoring:
+    endpoints:
+      - path: "/metrics"
+        port: 9090
+      - path: "/health"
+        port: 9091
+    alerts:
+      - name: "OrderProcessingDelay"
+        threshold: "5m"
+        severity: "critical"
+      - name: "PaymentFailureRate"
+        threshold: "5%"
+        severity: "critical"
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "1Gi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+---
+apiVersion: metadata.app.example.com/v1
+kind: ApplicationMetadata
+metadata:
+  name: inventory-service
+  namespace: backend
+  labels:
+    app.kubernetes.io/name: inventory
+    app.kubernetes.io/part-of: webshop
+    environment: production
+spec:
+  name: "Inventory Management Service"
+  description: "Real-time inventory tracking and management"
+  version: "1.1.0"
+  maintainers:
+    - name: "Backend Team"
+      email: "backend@example.com"
+      slack: "#backend-team"
+  repository:
+    url: "https://github.com/example/inventory-service"
+    branch: "main"
+    path: "/src"
+  dependencies:
+    - name: "database"
+      version: ">=13.0.0"
+      required: true
+    - name: "cache"
+      version: ">=6.0.0"
+      required: true
+    - name: "event-bus"
+      version: ">=2.0.0"
+      required: true
+  monitoring:
+    endpoints:
+      - path: "/metrics"
+        port: 9090
+      - path: "/health"
+        port: 9091
+    alerts:
+      - name: "StockLevel"
+        threshold: "10"
+        severity: "warning"
+      - name: "DatabaseLatency"
+        threshold: "100ms"
+        severity: "critical"
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"

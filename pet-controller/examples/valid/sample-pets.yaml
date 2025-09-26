@@ -1,0 +1,123 @@
+---
+apiVersion: pets.example.com/v1
+kind: Pet
+metadata:
+  name: buddy-the-dog
+  namespace: default
+  labels:
+    species: dog
+    owner: john
+spec:
+  name: "Buddy"
+  species: "Dog"
+  breed: "Golden Retriever"
+  age: 3
+  owner:
+    name: "John Smith"
+    contact: "+1-555-0123"
+  vaccination:
+    - name: "Rabies"
+      date: "2023-01-15"
+      nextDue: "2024-01-15"
+    - name: "DHPP"
+      date: "2023-02-01"
+      nextDue: "2024-02-01"
+  medications:
+    - name: "Heartworm Prevention"
+      frequency: "Monthly"
+      lastGiven: "2023-09-01"
+  diet:
+    - type: "Dry Food"
+      amount: "2 cups"
+      frequency: "Twice daily"
+  schedule:
+    walks:
+      - time: "08:00"
+        duration: "30m"
+      - time: "17:00"
+        duration: "45m"
+---
+apiVersion: pets.example.com/v1
+kind: Pet
+metadata:
+  name: whiskers-the-cat
+  namespace: default
+  labels:
+    species: cat
+    owner: sarah
+spec:
+  name: "Whiskers"
+  species: "Cat"
+  breed: "Siamese"
+  age: 5
+  owner:
+    name: "Sarah Johnson"
+    contact: "+1-555-0456"
+  vaccination:
+    - name: "FVRCP"
+      date: "2023-03-10"
+      nextDue: "2024-03-10"
+    - name: "Rabies"
+      date: "2023-03-10"
+      nextDue: "2024-03-10"
+  medications:
+    - name: "Flea Prevention"
+      frequency: "Monthly"
+      lastGiven: "2023-09-01"
+  diet:
+    - type: "Wet Food"
+      amount: "1/2 can"
+      frequency: "Twice daily"
+    - type: "Dry Food"
+      amount: "1/4 cup"
+      frequency: "Always available"
+  schedule:
+    checkups:
+      - type: "Grooming"
+        frequency: "Monthly"
+      - type: "Vet Visit"
+        frequency: "Yearly"
+---
+apiVersion: pets.example.com/v1
+kind: Pet
+metadata:
+  name: hopper-the-rabbit
+  namespace: pets
+  labels:
+    species: rabbit
+    owner: emma
+spec:
+  name: "Hopper"
+  species: "Rabbit"
+  breed: "Holland Lop"
+  age: 2
+  owner:
+    name: "Emma Wilson"
+    contact: "+1-555-0789"
+  vaccination:
+    - name: "RHDV2"
+      date: "2023-06-01"
+      nextDue: "2024-06-01"
+    - name: "Myxomatosis"
+      date: "2023-06-01"
+      nextDue: "2024-06-01"
+  diet:
+    - type: "Hay"
+      amount: "Unlimited"
+      frequency: "Always available"
+    - type: "Pellets"
+      amount: "1/4 cup"
+      frequency: "Daily"
+    - type: "Fresh Vegetables"
+      amount: "1 cup"
+      frequency: "Daily"
+  schedule:
+    exercise:
+      - activity: "Free Roam"
+        duration: "4 hours"
+        frequency: "Daily"
+    checkups:
+      - type: "Nail Trimming"
+        frequency: "Monthly"
+      - type: "Vet Visit"
+        frequency: "Yearly"
